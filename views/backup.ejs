@@ -1,0 +1,28 @@
+<div class="page-header"><h1>备份管理</h1>
+<form method="POST" action="/backup/create" style="display:inline">
+  <button type="submit" class="btn btn-primary" onclick="setTimeout(function(){this.disabled=true;this.textContent='备份中...'}.bind(this),100)">创建备份</button>
+</form></div>
+<div class="card" style="margin-bottom:1rem;background:#e8f4fd;border:1px solid #b6d4fe">
+  <p style="font-size:0.85rem;color:#0c5460">
+    <strong>说明：</strong>备份为完整的数据库文件，包含<strong>全部数据</strong>（客户、订单、交易、付款、接单人、手机、俱乐部、微信群、用户等）。
+    恢复时会将当前数据全部替换为备份文件中的数据。
+  </p>
+</div>
+<table class="table">
+  <thead><tr><th>备份文件</th><th>创建时间</th><th>大小</th><th>操作</th></tr></thead>
+  <tbody>
+    <% backups.forEach(function(b) { %>
+    <tr>
+      <td><code><%= b.name %></code></td>
+      <td><%= b.date %></td>
+      <td><%= (b.size/1024).toFixed(1) %> KB</td>
+      <td>
+        <form method="POST" action="/backup/download" style="display:inline"><input type="hidden" name="name" value="<%= b.name %>"><button type="submit" class="btn btn-sm">下载</button></form>
+        <form method="POST" action="/backup/restore" style="display:inline" onsubmit="return confirm('确认恢复「<%= b.name %>」？所有数据将被覆盖！')"><input type="hidden" name="name" value="<%= b.name %>"><button type="submit" class="btn btn-sm btn-warn">恢复</button></form>
+        <form method="POST" action="/backup/delete" style="display:inline" onsubmit="return confirm('确认删除此备份？')"><input type="hidden" name="name" value="<%= b.name %>"><button type="submit" class="btn btn-sm btn-danger">删除</button></form>
+      </td>
+    </tr>
+    <% }) %>
+    <% if (backups.length===0) { %><tr><td colspan="4" class="empty">暂无备份，点击「创建备份」开始</td></tr><% } %>
+  </tbody>
+</table>

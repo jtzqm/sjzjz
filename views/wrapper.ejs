@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title || '三角洲记账系统' %></title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <% if (user) { %>
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="<%= user.role === 'booster' ? '/booster' : '/' %>" class="nav-brand">三角洲记账</a>
+      <div class="nav-links">
+        <% if (user.role === 'booster') { %>
+          <a href="/booster">我的派单</a>
+          <a href="/profile"><%= user.username %></a>
+          <a href="/logout">退出</a>
+        <% } else { %>
+          <a href="/">首页</a>
+          <a href="/orders/active">进行中订单</a>
+          <a href="/orders/completed">已结单</a>
+          <a href="/customers">客户</a>
+          <a href="/phones">手机</a>
+          <a href="/stats">统计</a>
+          <a href="/clubs">俱乐部</a>
+          <% if (user.role === 'admin') { %>
+            <a href="/wechats/manage">微信群</a>
+            <a href="/backup">备份</a>
+            <a href="/users/review">用户审核</a>
+            <a href="/admin/boosters">打手账号</a>
+          <% } %>
+          <a href="/profile"><%= user.username %></a>
+          <a href="/logout">退出</a>
+        <% } %>
+      </div>
+    </div>
+  </nav>
+  <% } %>
+  <main class="container"><%- content %></main>
+</body>
+</html>

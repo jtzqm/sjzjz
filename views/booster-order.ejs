@@ -1,0 +1,88 @@
+<h2>订单 #<%= order.id %> · <%= order.wechat_name %></h2>
+<p class="muted">
+  游戏ID：<%= order.order_game_id || '—' %> ｜
+  需求：<%= order.total_harfbux %> M ｜
+  当前剩余：<%= (remaining != null ? remaining : order.total_harfbux) %>
+</p>
+
+<h3>交易记录</h3>
+<table class="table">
+  <thead><tr><th>日期</th><th>开始</th><th>结束</th><th>变动</th><th>剩余</th><th>录入</th></tr></thead>
+  <tbody>
+  <% transactions.forEach(function(t){ %>
+    <tr>
+      <td><%= t.date %></td>
+      <td><%= t.start_amount %></td>
+      <td><%= t.end_amount == null ? '—' : t.end_amount %></td>
+      <td><% if (t.change_amount == null) { %><span style="color:#e65100">进行中</span><% } else { %><strong><%= t.change_amount %></strong><% } %></td>
+      <td><%= t.balance_difference == null ? '—' : t.balance_difference %></td>
+      <td><%= t.creator || '—' %></td>
+    </tr>
+  <% }); %>
+  </tbody>
+</table>
+
+<% var completedCount = transactions.filter(function(t){ return t.round_status === 'completed'; }).length; %>
+
+<% if (pending) { %>
+  <h3>本轮进行中（已记录开始金额 <strong><%= pending.start_amount %></strong>）</h3>
+  <p class="muted">请上传<b>结束截图</b>完成本轮。结束前不能开启下一轮。</p>
+  <form method="POST" action="/booster/orders/<%= order.id %>/transactions/end" class="form" id="endForm">
+    <div style="border:1px solid #eee;border-radius:6px;padding:0.8rem;margin-bottom:0.8rem">
+      <strong>② 结束截图（本趟代练收尾余额）</strong>
+      <input type="file" accept="image/*" data-role="end" style="display:block;margin:0.4rem 0">
+      <canvas data-role="end" style="max-width:100%;border:1px solid #ddd;border-radius:4px"></canvas>
+      <div style="margin-top:0.4rem">
+        <button type="button" class="btn btn-sm btn-primary" data-recognize="end">识别总资产</button>
+        <button type="button" class="btn btn-sm" data-reset="end">重置框选</button>
+      </div>
+      <label style="margin-top:0.4rem">结束金额（单位：百万/M）<input type="number" step="0.01" name="end_amount" id="end_amount" required></label>
+    </div>
+    <label>单位
+      <select id="unit">
+        <option value="M" selected>M（百万）</option>
+        <option value="K">K（千）</option>
+        <option value="万">万</option>
+        <option value="亿">亿</option>
+      </select>
+    </label>
+    <label>日期<input type="date" name="date" value="<%= new Date().toISOString().slice(0,10) %>"></label>
+    <label>备注<input name="notes" placeholder="如：客户中途玩过 / 第<%= completedCount + 1 %>次代练收尾"></label>
+    <button type="submit" class="btn btn-primary">完成本轮（请核对金额）</button>
+  </form>
+<% } else { %>
+  <h3>记一笔（截图 OCR）· 第 <%= completedCount + 1 %> 次代练</h3>
+  <p class="muted">上传<b>开始截图</b>确认后即可保存开始金额；结束截图可几小时后再传，不耽误你继续操作。</p>
+  <form method="POST" action="/booster/orders/<%= order.id %>/transactions/start" class="form" id="startForm">
+    <div style="border:1px solid #eee;border-radius:6px;padding:0.8rem;margin-bottom:0.8rem">
+      <strong>① 开始截图（本趟代练开局余额）</strong>
+      <input type="file" accept="image/*" data-role="start" style="display:block;margin:0.4rem 0">
+      <canvas data-role="start" style="max-width:100%;border:1px solid #ddd;border-radius:4px"></canvas>
+      <div style="margin-top:0.4rem">
+        <button type="button" class="btn btn-sm btn-primary" data-recognize="start">识别总资产</button>
+        <button type="button" class="btn btn-sm" data-reset="start">重置框选</button>
+      </div>
+      <label style="margin-top:0.4rem">开始金额（单位：百万/M）<input type="number" step="0.01" name="start_amount" id="start_amount" required></label>
+    </div>
+    <label>单位
+      <select id="unit">
+        <option value="M" selected>M（百万）</option>
+        <option value="K">K（千）</option>
+        <option value="万">万</option>
+        <option value="亿">亿</option>
+      </select>
+    </label>
+    <label>日期<input type="date" name="date" value="<%= new Date().toISOString().slice(0,10) %>"></label>
+    <label>备注<input name="notes" placeholder="如：第<%= completedCount + 1 %>次代练开始 / 客户中途玩过"></label>
+    <button type="submit" class="btn btn-primary">确认开始（保存开始金额）</button>
+  </form>
+<% } %>
+
+<p class="muted">截图仅在本机浏览器内识别，不会上传任何服务器。识别后请务必核对金额再提交。</p>
+<p class="muted" style="font-size:0.85em">
+  使用说明：在「角色-战绩」页截图后，蓝框会<b>自动定位到「总资产」</b>位置，直接点「识别总资产」即可；
+  若你手机上框的位置有偏移，直接在截图上重新框一下数字（会自动记住），或点「重置框选」恢复默认位置。
+</p>
+
+<!-- tesseract.min.js 不再随页面加载，改由 booster-ocr.js 在点「识别」时按需注入 -->
+<script src="/booster-ocr.js"></script>

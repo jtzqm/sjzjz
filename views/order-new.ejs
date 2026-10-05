@@ -1,0 +1,83 @@
+﻿<div class="page-header"><h1>新建订单</h1><a href="/orders/active" class="btn">返回</a></div>
+<form method="POST" action="/orders/new" class="form" id="orderForm">
+  <div class="form-row" style="display: flex; gap: 10px; align-items: center;">
+    <label style="flex: 1;">订单号<input type="text" name="order_number" id="order_number_input" placeholder="手动输入订单号"></label>
+    <button type="button" id="btn_gen_order_num" class="btn" style="width: auto; padding: 0.4rem 1rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">✨ 自动生成</button>
+  </div>
+  <% if (earlyHint) { %><div class="alert alert-warn">该客户上次提前结单，还欠 <strong><%= earlyHint.remaining %></strong> M</div><% } %>
+  <div class="form-row">
+    <label>客户搜索<input type="text" id="customerSearch" placeholder="🔍 输入客户名称/微信号搜索..." oninput="filterCustomers()" style="width:100%;padding:0.4rem;font-size:0.95rem;border:1px solid #ccc;border-radius:4px;margin-bottom:0.3rem;"></label>
+    <label>客户<select name="customer_id" id="customerSelect" required>
+      <option value="">-- 选择客户 --</option>
+      <% customers.forEach(function(c) { %><option value="<%= c.id %>" data-wechat="<%= c.wechat_name || '' %>" data-gameid="<%= c.game_id || '' %>" data-created="<%= c.created_at || '' %>"><%= c.wechat_name %></option><% }) %>
+    </select></label>
+    <label>游戏ID<input name="order_game_id" id="orderGameId" placeholder="选客户后自动填充"></label>
+    <label>微信群/企业微信群<select name="order_wechat_name">
+      <option value="">-- 选择 --</option>
+      <% wechatGroups.forEach(function(w) { %><option value="<%= w.name %>"><%= w.name %> (<%= w.type %>)</option><% }) %>
+    </select></label>
+  </div>
+  <div class="form-row">
+    <label>所属俱乐部<select name="club_name">
+      <option value="">-- 选择 --</option>
+      <% clubs.forEach(function(c) { %><option value="<%= c.name %>"><%= c.name %></option><% }) %>
+    </select></label>
+    <label>分配手机<select name="phone_id" id="phoneSelect"><option value="">不分配</option>
+      <% phones.forEach(function(p) { %><option value="<%= p.id %>"><%= p.phone_number %>号</option><% }) %>
+    </select></label>
+  </div>
+  <div class="form-row">
+    <label>历史分配手机<select id="historyPhoneSelect"><option value="">-- 选择历史手机 --</option></select></label>
+  </div>
+  <div class="form-row">
+    <label>需求总数(哈弗币 M)<input name="total_harfbux" type="number" step="0.01"></label>
+    <label>初始现金<input name="initial_cash" placeholder="如: 1184K"></label>
+    <label>初始总资产<input name="initial_assets" placeholder="如: 21.2M"></label>
+  </div>
+  <label>订单备注<textarea name="notes" rows="2"></textarea></label>
+  <button type="submit" class="btn btn-primary">创建订单</button>
+</form>
+<script>
+// 自动生成订单号
+document.getElementById('btn_gen_order_num').addEventListener('click', function() {
+  const button = this;
+  button.disabled = true;
+  fetch('/orders/generate-number').then(function(response) { return response.json(); }).then(function(data) {
+    document.getElementById('order_number_input').value = data.order_number;
+  }).catch(function() {
+    alert('订单号生成失败，请稍后重试');
+  }).finally(function() {
+    button.disabled = false;
+  });
+});
+
+// 客户搜索过滤
+function filterCustomers(){
+  var val=document.getElementById('customerSearch').value.trim().toLowerCase();
+  var sel=document.getElementById('customerSelect');
+  for(var i=1;i<sel.options.length;i++){
+    var opt=sel.options[i];
+    var match=opt.text.toLowerCase().indexOf(val)>-1
+           ||opt.getAttribute('data-gameid').toLowerCase().indexOf(val)>-1
+           ||opt.getAttribute('data-wechat').toLowerCase().indexOf(val)>-1;
+    opt.style.display=match?'':'none';
+  }
+}
+// 客户选择变化时自动填充游戏ID和历史。
+document.getElementById('customerSelect').addEventListener('change',function(){
+  var s=this.options[this.selectedIndex];
+  document.getElementById('orderGameId').value=s&&s.value?s.getAttribute('data-gameid')||'':'';
+  var customerHistoryPhones=<%- JSON.stringify(customerHistoryPhones) %>;
+  var histSelect=document.getElementById('historyPhoneSelect');
+  histSelect.innerHTML='<option value="">-- 选择历史手机 --</option>';
+  if(s&&s.value&&customerHistoryPhones[s.value]){
+    var phones=customerHistoryPhones[s.value];
+    phones.forEach(function(ph){
+      var opt=document.createElement('option');
+      opt.value=ph.phone_id;
+      opt.textContent='第'+ph.order_id+'号单分配 '+ph.phone_number+'号(结单:'+ph.completed_at+')';
+      histSelect.appendChild(opt);
+    });
+  }
+});
+</script>

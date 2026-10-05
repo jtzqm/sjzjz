@@ -1,0 +1,118 @@
+<div class="page-header"><h1>已结单列表</h1></div>
+<div style="margin-bottom:0.8rem;display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
+  <input id="searchInput" type="text" placeholder="🔍 搜索客户名称..." oninput="filterOrders()" style="padding:0.4rem 0.7rem;border:1px solid #ddd;border-radius:4px;width:250px;font-size:0.9rem">
+  <select id="clubSelect" onchange="filterByClub()" style="padding:0.4rem 0.7rem;border:1px solid #ddd;border-radius:4px;font-size:0.9rem">
+    <option value="">全部俱乐部</option>
+    <% clubs.forEach(function(c) { %>
+    <option value="<%= c %>" <%= selectedClub===c?'selected':'' %>><%= c %></option>
+    <% }) %>
+  </select>
+  <select id="paymentSelect" onchange="filterOrders()" style="padding:0.4rem 0.7rem;border:1px solid #ddd;border-radius:4px;font-size:0.9rem">
+    <option value="all">收款详情</option>
+    <option value="paid">已收款</option>
+    <option value="unpaid">未收款</option>
+  </select>
+  <select id="handlerSelect" onchange="filterOrders()" style="padding:0.4rem 0.7rem;border:1px solid #ddd;border-radius:4px;font-size:0.9rem">
+    <option value="all">付打手</option>
+    <option value="paid">已付打手</option>
+    <option value="unpaid">未付打手</option>
+  </select>
+  <% if (selectedClub) { %>
+  <a href="/orders/completed" style="padding:0.4rem 0.75rem;background:#666;color:white;text-decoration:none;border-radius:4px;font-size:0.9rem">清除筛选</a>
+  <% } %>
+  <button onclick="exportCSV()" class="btn btn-success" style="padding:0.4rem 0.7rem;border:none;border-radius:4px;font-size:0.9rem;cursor:pointer;background:#28a745;color:white">导出 CSV</button>
+</div>
+<table class="table" id="ordersTable">
+  <thead><tr><th>序号</th><th class="order-number">订单号</th><th>客户</th><th>游戏ID</th><th>手机</th><th>微信群</th><th>需求(M)</th><th>已收款(元)</th><th>付打手(元)</th><th>俱乐部</th><th>结单方式</th><th>还欠(M)</th><th>结单时间</th><th>创建时间</th><th>纯利润(元)</th><th>操作</th></tr></thead>
+  <tbody>
+    <% orders.forEach(function(o) { %>
+    <tr class="order-row">
+      <td><%= o.sequence %></td>
+      <td class="order-number"><%= o.order_number||'-' %></td>
+      <td><a href="/orders/<%= o.id %>"><%= o.wechat_name %></a> <% if(o.login_method && o.login_method.trim()){ %>(<%= o.login_method.trim() %>)<% }else{ %><span style="color:#ccc">(未设置)</span><% } %></td>
+      <td><%= o.order_game_id||'-' %></td>
+      <td><%= o.phone_number||'-' %>号</td>
+      <td><%= o.order_wechat_name||'-' %></td>
+      <td><%= o.total_harfbux %>M</td>
+      <td><%= o.received_amount||0 %></td>
+      <td><%= o.handler_amount||0 %></td>
+      <td><%= o.club_name||'-' %></td>
+      <td><span class="status status-<%= o.status %>"><%= o.status==='completed'?'正常':'提前' %></span></td>
+      <td><%= o.early_remaining_harfbux||'-' %></td>
+      <td><%= o.completed_at||'' %></td>
+      <td><%= o.created_at||'' %></td>
+      <td><%= (o.received_amount||0)-(o.handler_amount||0) %></td>
+      <td><form method="POST" action="/orders/<%= o.id %>/delete" onsubmit="return confirm(\'确认删除此订单？\')"><button type="submit" class	class="btn btn-sm btn-danger">删除</button></form></td>
+    </tr>
+    <% }) %>
+    <% if (orders.length===0) { %><tr><td colspan="16" class="empty">暂无已结单的订单</td></tr><% } %>
+  </tbody>
+</table>
+<script>
+function filterByClub(){
+  window.location.href='/orders/completed?club='+document.getElementById('clubSelect').value;
+}
+function filterOrders(){
+  var nameVal=document.getElementById("searchInput").value.toLowerCase();
+  var paymentVal=document.getElementById("paymentSelect").value;
+  var handlerVal=document.getElementById("handlerSelect").value;
+  var clubVal=document.getElementById("clubSelect").value;
+  document.querySelectorAll("#ordersTable .order-row").forEach(function(r){
+    var cells=r.querySelectorAll("td");
+    var matchName=nameVal===""||r.textContent.toLowerCase().indexOf(nameVal)>-1;
+    var matchPayment=true;
+    if(paymentVal==="paid"){
+      var received=parseFloat(cells[7].textContent)||0;
+      matchPayment=received>0;
+    } else if(paymentVal==="unpaid"){
+      var received=parseFloat(cells[7].textContent)||0;
+      var demand=parseFloat(cells[6].textContent)||0;
+      matchPayment=received===0 && demand!==0;
+    }
+    var matchHandler=true;
+    if(handlerVal==="paid"){
+      var handler=parseFloat(cells[8].textContent)||0;
+      matchHandler=handler>0;
+    } else if(handlerVal==="unpaid"){
+      var handler=parseFloat(cells[8].textContent)||0;
+      matchHandler=handler===0;
+    }
+    var matchClub=true;
+    if(clubVal!==""){
+      var clubCell=cells[9];
+      matchClub=clubCell && clubCell.textContent===clubVal;
+    }
+    r.style.display=(matchName && matchPayment && matchHandler && matchClub)?"":"none";
+  });
+}
+
+function exportCSV() {
+  const table = document.getElementById("ordersTable");
+  let csv = [];
+  const rows = table.querySelectorAll("tr");
+  
+  for (let i = 0; i < rows.length; i++) {
+    // Only include visible rows
+    if (rows[i].style.display === "none") continue;
+    
+    const row = [], cols = rows[i].querySelectorAll("td, th");
+    for (let j = 0; j < cols.length; j++) {
+      // Clean text: remove newlines and escape quotes
+      let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, " ").replace(/"/g, '""');
+      row.push('"' + data + '"');
+    }
+    csv.push(row.join(","));
+  }
+
+  const csvContent = "\uFEFF" + csv.join("\n"); // Add BOM for Excel UTF-8 support
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", "completed_orders_" + new Date().toISOString().slice(0,10) + ".csv");
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+</script>

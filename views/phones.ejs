@@ -1,0 +1,27 @@
+<div class="page-header"><h1>手机管理</h1></div>
+<p style="color:#888;font-size:0.85rem;margin-bottom:1rem">手机编号 1-200 号已自动生成</p>
+
+<table class="table">
+  <thead><tr><th>编号</th><th>状态</th><th>使用中订单</th><th>客户</th><% if(user.role==='admin'){%><th>操作</th><%}%></tr></thead>
+  <tbody>
+    <% phones.forEach(function(p) { %>
+    <tr>
+      <td><%= p.phone_number %>号</td>
+      <td><span class="status status-<%= p.status %>"><%= {idle:'空闲',in_use:'使用中',maintenance:'维修中'}[p.status]||p.status %></span></td>
+      <td><%= p.oid ? '<a href="/orders/'+p.oid+'">#'+p.oid+'</a>' : '-' %></td>
+      <td><%= p.customer_number ? p.customer_number+'号 '+p.wechat_name : '-' %></td>
+      <% if(user.role==='admin'){%>
+      <td>
+        <form method="POST" action="/phones/<%= p.id %>/status" class="form-inline" style="display:inline-block; margin-right:0.5rem;">
+          <select name="status"><option value="idle" <%= p.status==='idle'?'selected':'' %>>空闲</option><option value="in_use" <%= p.status==='in_use'?'selected':'' %>>使用中</option><option value="maintenance" <%= p.status==='maintenance'?'selected':'' %>>维修中</option></select>
+          <button type="submit" class="btn btn-sm">更新</button>
+        </form>
+        <form method="POST" action="/phones/<%= p.id %>/delete" style="display:inline-block" onsubmit="return confirm('确认删除编号 <%= p.phone_number %> 号手机？')">
+          <button type="submit" class="btn btn-sm btn-danger">删除</button>
+        </form>
+      </td>
+      <% } %>
+    </tr>
+    <% }) %>
+  </tbody>
+</table>

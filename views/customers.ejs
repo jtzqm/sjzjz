@@ -1,0 +1,36 @@
+<div class="page-header"><h1>客户管理</h1><a href="/customers/new" class="btn btn-primary">新增客户</a></div>
+<div style="margin-bottom:0.8rem;">
+  <input id="customerSearch" type="text" placeholder="🔍 输入微信名搜索..." oninput="filterCustomers()" style="padding:0.4rem 0.7rem;border:1px solid #ddd;border-radius:4px;width:200px;font-size:0.9rem">
+</div>
+<table id="customersTable" class="table">
+  <thead><tr><th>微信名</th><th>游戏ID</th><th>地区</th><th>总订单</th><th>操作</th></tr></thead>
+  <tbody>
+    <% customers.forEach(function(c) { %>
+    <tr class="customer-row">
+      <td><a href="/customers/<%= c.id %>"><%= c.wechat_name %></a> <% if(c.login_method && c.login_method.trim()){ %>(<%= c.login_method.trim() %>)<% }else{ %><span style="color:#ccc">(未设置)</span><% } %></td>
+      <td><%= c.game_id||'' %></td>
+      <td><%= c.region||'' %></td>
+      <td><%= c.total_orders %></td>
+      <td>
+        <a href="/customers/<%= c.id %>">详情</a>
+        <% if (user.role === 'admin') { %>
+        <form method="POST" action="/customers/<%= c.id %>/delete" style="display:inline" onsubmit="return confirm('确认删除此客户？')">
+          <button type="submit" class="btn btn-sm btn-danger">删除</button>
+        </form>
+        <% } %>
+      </td>
+    </tr>
+    <% }) %>
+  </tbody>
+</table>
+<script>
+function filterCustomers(){
+  var val=document.getElementById('customerSearch').value.trim().toLowerCase();
+  document.querySelectorAll('#customersTable .customer-row').forEach(function(r){
+    var nameCell=r.querySelector('td');
+    var text=nameCell ? nameCell.textContent.toLowerCase() : '';
+    r.style.display = (val === '' || text.indexOf(val) > -1) ? '' : 'none';
+  });
+}
+</script>
+

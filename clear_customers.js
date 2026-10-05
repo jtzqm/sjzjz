@@ -1,0 +1,10 @@
+const Database = require('better-sqlite3');
+const db = new Database('C:\\Users\\xzxyk\\Desktop\\三角洲项目网站建设\\data\\delta.db');
+db.pragma('foreign_keys = OFF');
+db.prepare('DELETE FROM customer_wechats').run();
+db.prepare('DELETE FROM orders').run();
+db.prepare('DELETE FROM transactions').run();
+db.prepare('DELETE FROM payments').run();
+db.prepare('DELETE FROM customers').run();
+db.pragma('foreign_keys = ON');
+db.close();

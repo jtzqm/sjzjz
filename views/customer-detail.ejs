@@ -1,0 +1,46 @@
+<div class="page-header">
+  <h1><%= customer.wechat_name||'' %></h1>
+  <div><a href="/customers" class="btn">返回</a></div>
+</div>
+<div class="card">
+  <form method="POST" action="/customers/<%= customer.id %>/edit" class="form">
+    <label>微信名<input name="wechat_name" value="<%= customer.wechat_name||'' %>"></label>
+    <label>登陆方式<select name="login_method"><option value="QQ" <%= customer.login_method==='QQ'?'selected':'' %>>QQ</option><option value="微信" <%= customer.login_method==='微信'?'selected':'' %>>微信</option></select></label>
+    <label>游戏ID<input name="game_id" value="<%= customer.game_id||'' %>"></label>
+    <label>地区<input name="region" value="<%= customer.region||'' %>"></label>
+    <label>实际加速地<input name="acceleration_location" value="<%= customer.acceleration_location||'' %>"></label>
+    <label>备注<textarea name="notes" rows="2"><%= customer.notes||'' %></textarea></label>
+    <button type="submit" class="btn btn-primary">保存修改</button>
+  </form>
+</div>
+
+<h2>历史订单</h2>
+<table class="table">
+  <thead><tr><th>订单ID</th><th>状态</th><th>手机</th><th>微信群</th><th>需求(M)</th><th>已收款(元)</th><th>创建时间</th><th>操作</th></tr></thead>
+    <thead><tr><th>订单ID</th><th>订单号</th><th>查询验证码</th><th>状态</th><th>手机</th><th>微信群</th><th>需求(M)</th><th>已收款(元)</th><th>创建时间</th><th>操作</th></tr></thead>
+  <tbody>
+    <% orders.forEach(function(o) { %>
+    <tr>
+      <td><a href="/orders/<%= o.id %>">#<%= o.id %></a></td>
+        <td><%= o.order_number||'-' %></td>
+        <td><strong><%= o.query_token||'-' %></strong><br><button type="button" class="btn btn-sm" onclick="copyQueryInfo('<%= o.order_number||'' %>', '<%= o.query_token||'' %>')">复制查询信息</button></td>
+      <td><span class="status status-<%= o.status %>"><%= {active:'进行中',completed:'已完成',early_completed:'提前结单'}[o.status]||o.status %></span></td>
+      <td><%= o.phone_number||'-' %>号</td>
+      <td><%= o.order_wechat_name||'-' %></td>
+      <td><%= o.total_harfbux %>M</td>
+      <td><%= o.received_amount||0 %></td>
+      <td><%= o.created_at %></td>
+      <td><a href="/orders/<%= o.id %>/print" class="btn btn-sm btn-primary" target="_blank">🖨️ 打印派单</a></td>
+    </tr>
+    <% }) %>
+  </tbody>
+</table>
+<script>function copyQueryInfo(orderNumber, queryToken){navigator.clipboard.writeText('订单号: '+orderNumber+' | 验证码: '+queryToken).then(function(){alert('查询信息已复制');});}</script>
+
+<% if (user.role === 'admin') { %>
+<div style="margin-top:1rem">
+  <form method="POST" action="/customers/<%= customer.id %>/delete" onsubmit="return confirm('确认删除此客户？所有关联数据将被清除')">
+    <button type="submit" class="btn btn-danger">删除此客户</button>
+  </form>
+</div>
+<% } %>

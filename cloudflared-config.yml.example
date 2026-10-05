@@ -1,0 +1,28 @@
+# ============================================================================
+# Cloudflare Tunnel 配置模板（命名隧道 / 用你已托管的域名）
+# 用法：填好下面两处 <> 占位符后，保存到服务器 ~/.cloudflared/config.yml
+#       （路径可用 cloudflared tunnel create 后提示的 credentials-file 实际路径）
+# 说明：Cloudflare 边缘终止 HTTPS，origin 走 localhost:3000 明文即可（本机回路）。
+# ============================================================================
+
+# 隧道 ID（cloudflared tunnel create delta-app 输出）
+tunnel: <TUNNEL_ID>
+# 凭据文件（create 后自动生成在 ~/.cloudflared/<TUNNEL_ID>.json）
+credentials-file: /root/.cloudflared/<TUNNEL_ID>.json
+
+ingress:
+  # 整个应用挂在一个子域名下；客户查询用 /public/track，后台用 /login
+  - hostname: delta.yourdomain.com
+    service: http://localhost:3000
+  # 兜底
+  - service: http_status:404
+
+# ----------------------------------------------------------------------------
+# 进阶（可选）：把客户查询和后台拆成两个子域名，并给后台加 Cloudflare Access
+#   - hostname: track.yourdomain.com      # 客户公开查询，无需登录
+#     service: http://localhost:3000
+#   - hostname: admin.yourdomain.com      # 后台，Zero Trust → 仅允许你的邮箱
+#     service: http://localhost:3000
+# 后台 Access 策略在 Cloudflare 控制台 Zero Trust → Access → Applications 里建，
+# 选 Self-hosted，域名填 admin.yourdomain.com，Policy 加一条 Allow + 你的邮箱。
+# ----------------------------------------------------------------------------

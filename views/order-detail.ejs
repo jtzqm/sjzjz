@@ -1,0 +1,103 @@
+<div class="page-header"><h1>订单 #<%= order.id %> - <%= order.wechat_name %> <% if(order.order_game_id){ %>(<%= order.order_game_id %>)<% } %></h1>
+<div><a href="/orders/<%= order.id %>/print" class="btn btn-primary" target="_blank">🖨️ 打印派单</a><a href="/orders/active" class="btn">返回</a>
+<span class="status status-<%= order.status %>"><%= order.status==='active'?'进行中':order.status==='completed'?'已完成':'提前结单' %></span></div><span style="font-weight:700;color:#c0392b;margin-right:0.5rem">查询验证码：<%= order.query_token||'-' %></span><button type="button" class="btn" onclick="copyQueryInfo('<%= order.order_number||'' %>', '<%= order.query_token||'' %>')">复制查询信息</button><button type="button" class="btn" onclick="genQRAdmin()">📱 生成二维码</button></div></div>
+<div id="qrPanelAdmin" style="display:none;margin:1rem 0;text-align:center;border:1px dashed #ddd;border-radius:10px;padding:1rem;background:#fafbfc"><img id="qrImgAdmin" alt="查询二维码" style="width:200px;height:200px;border-radius:8px;background:#fff"><span id="qrLinkAdmin" style="color:#666;font-size:.72rem;word-break:break-all;display:block;margin:.6rem 0"></span><button type="button" class="btn" onclick="copyLinkAdmin()">复制链接</button><div style="color:#999;font-size:.74rem;margin-top:.3rem">客户扫码即可直接查看订单进度并打印派单</div></div>
+<script>function copyQueryInfo(orderNumber, queryToken){navigator.clipboard.writeText('订单号: '+orderNumber+' | 验证码: '+queryToken).then(function(){alert('查询信息已复制');});}
+function genQRAdmin(){var p=document.getElementById('qrPanelAdmin');var num='<%= order.order_number %>';var tok='<%= order.query_token %>';document.getElementById('qrImgAdmin').src='/public/qrcode?order_number='+encodeURIComponent(num)+'&query_token='+encodeURIComponent(tok);document.getElementById('qrLinkAdmin').textContent=location.origin+'/public/track?order_number='+num+'&query_token='+tok;p.style.display='block';}
+function copyLinkAdmin(){navigator.clipboard.writeText(document.getElementById('qrLinkAdmin').textContent).then(function(){alert('链接已复制');});}</script>
+
+<% if(earlyHint){ %><div class="alert alert-warn">已跑 <%= (order.total_harfbux-earlyHint.remaining).toFixed(1) %>M / <%= order.total_harfbux %>M，还差 <%= earlyHint.remaining %>M</div><% } %>
+<% if(order.status==='early_completed'&&order.early_remaining_harfbux>0){ %><div class="alert alert-warn">还欠客户 <strong><%= order.early_remaining_harfbux %></strong> M</div><% } %>
+
+<div class="card">
+<form method="POST" action="/orders/<%= order.id %>/edit" class="form" id="editForm">
+  <div class="form-row">
+    <label>订单号<input name="order_number" value="<%= order.order_number||'' %>"></label>
+    <label>客户<select name="customer_id"><% customers.forEach(function(c){ var ph=prevPhones[c.id]; var phoneInfo=ph?'📱 上次: '+ph.phone_number+'号 ('+ph.completed_at.substring(0,10)+')':''; %><option value="<%= c.id %>" <%= order.customer_id==c.id?'selected':'' %>><%= c.wechat_name %> (<%= c.customer_number %>)<% if(phoneInfo){ %><br><small style="color:#666"><%= phoneInfo %></small><% } %></option><% }) %></select></label>
+    <label>游戏ID<input name="order_game_id" value="<%= order.order_game_id||'' %>"></label>
+    <label>手机<select name="phone_id"><option value="">不分配</option><% phones.forEach(function(p){ %><option value="<%= p.id %>" <%= order.phone_id==p.id?'selected':'' %>><%= p.phone_number %>号 <%= p.status==='in_use'?'(使用中)':'' %></option><% }) %></select></label>
+  </div>
+  <div class="form-row">
+    <label>微信群<input name="order_wechat_name" list="editWechatList" value="<%= order.order_wechat_name||'' %>">
+    <datalist id="editWechatList"><% wechatGroups.forEach(function(w){ %><option value="<%= w.name %>"><% }) %></datalist></label>
+    <label>俱乐部<select name="club_name">
+      <option value="">-- 选择 --</option>
+      <% clubs.forEach(function(n){ %><option value="<%= n.name %>" <%= order.club_name===n.name?'selected':'' %>><%= n.name %></option><% }) %>
+    </select></label>
+  </div>
+  <div class="form-row">
+    <label>需求(M)<input name="total_harfbux" type="number" step="0.01" value="<%= order.total_harfbux %>"></label>
+    <label>初始现金<input name="initial_cash" value="<%= order.initial_cash||'' %>"></label>
+    <label>初始总资产<input name="initial_assets" value="<%= order.initial_assets||'' %>"></label>
+  </div>
+  <label>备注<textarea name="notes" rows="2"><%= order.notes||'' %></textarea></label>
+  <button type="submit" class="btn btn-primary">保存修改</button>
+</form></div>
+
+<h2>交易记录</h2>
+<table class="table" style="font-size:0.88rem"><thead><tr><th>日期</th><th>开始金额</th><th>结束金额</th><th>总额</th><th>差额</th><th>备注</th><% if(order.status==='active'){%><th>操作</th><%}%></tr></thead>
+<tbody><% transactions.forEach(function(t){ %>
+<tr><td><%= t.date %></td><td><%= t.start_amount %></td><td><%= t.end_amount==null?'—':t.end_amount %></td><td><% if(t.change_amount==null){ %><span style="color:#e65100">进行中</span><% } else { %><strong><%= t.change_amount %></strong><% } %></td><td><%= t.balance_difference==null?'—':t.balance_difference %></td><td><%= t.notes||'-' %></td>
+<% if(order.status==='active'){%><td><form method="POST" action="/transactions/<%= t.id %>/delete" onsubmit="return confirm('确认删除？')"><button type="submit" class="btn btn-sm btn-danger">删除</button></form></td><%}%>
+</tr><%})%></tbody></table>
+
+<% if(order.status==='active'){%>
+<div class="card" style="background:#f9fafb;padding:0.8rem 1rem">
+<form method="POST" action="/orders/<%= order.id %>/transactions/new" class="form" id="txForm">
+  <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <label>日期<input type="date" name="date" required></label>
+    <label>开始金额<input name="start_amount" id="txStart" type="number" step="0.01" required oninput="calcPreview()"></label>
+    <label>结束金额<input name="end_amount" id="txEnd" type="number" step="0.01" required oninput="calcPreview()"></label>
+    <label>备注<input name="notes"></label>
+  </div>
+  <div class="form-row" style="grid-template-columns:1fr 1fr;margin-top:0.5rem">
+    <div style="background:#e8f0fe;border-radius:4px;padding:0.4rem 0.8rem;text-align:center"><span style="font-size:0.78rem">总额（结束−开始）</span><br><span id="previewTotal" style="font-size:1.1rem;font-weight:700;color:#1a73e8">0</span></div>
+    <div style="background:#e8f0fe;border-radius:4px;padding:0.4rem 0.8rem;text-align:center"><span style="font-size:0.78rem">差额（需求−累计）</span><br><span id="previewBalance" style="font-size:1.1rem;font-weight:700;color:#1a73e8"><%= (order.total_harfbux-(transactions.length>0&&transactions[transactions.length-1].balance_difference!=null?transactions[transactions.length-1].balance_difference:0)).toFixed(1) %></span></div>
+  </div>
+  <div style="display:flex;align-items:flex-end;margin-top:0.5rem"><button type="submit" class="btn btn-primary" style="width:100%">添加交易</button></div>
+</form></div>
+<script>
+var lastBalance=<%= (transactions.length>0&&transactions[transactions.length-1].balance_difference!=null?transactions[transactions.length-1].balance_difference:order.total_harfbux) %>;
+function calcPreview(){var sa=parseFloat(document.getElementById('txStart').value)||0;var ea=parseFloat(document.getElementById('txEnd').value)||0;var t=+(ea-sa).toFixed(2);document.getElementById('previewTotal').textContent=t;document.getElementById('previewBalance').textContent=+(lastBalance-t).toFixed(2);}
+</script><%}%>
+
+<h2>收款记录</h2>
+<table class="table"><thead><tr><th>日期</th><th>金额(元)</th><th>状态</th><th>备注</th><th>操作</th></tr></thead>
+<tbody><% payments.forEach(function(p){%>
+<tr><td><%= p.date %></td><td><%= p.amount %></td>
+<td><span class="status status-<%= p.status %>"><%= p.status==='paid'?'已付款':'未付款' %></span></td><td><%= p.notes||'-' %></td>
+<td><% if(p.status==='unpaid'){%><form method="POST" action="/payments/<%= p.id %>/status" style="display:inline"><input type="hidden" name="status" value="paid"><button type="submit" class="btn btn-sm">标记已付</button></form><%}%>
+<form method="POST" action="/payments/<%= p.id %>/delete" style="display:inline" onsubmit="return confirm('删除？')"><button type="submit" class="btn btn-sm btn-danger">删除</button></form></td></tr>
+<%})%></tbody></table>
+<form method="POST" action="/orders/<%= order.id %>/payments/new" class="form-inline">
+  <input type="date" name="date" required><input name="amount" type="number" step="0.01" placeholder="金额" required>
+  <select name="status"><option value="unpaid">未付款</option><option value="paid">已付款</option></select>
+  <input name="notes" placeholder="备注"><button type="submit" class="btn btn-primary btn-sm">添加</button>
+</form>
+
+<h2>打手记录</h2>
+<table class="table"><thead><tr><th>日期</th><th>金额(元)</th><th>状态</th><th>备注</th><th>操作</th></tr></thead>
+<tbody><% handlerRecords.forEach(function(h){%>
+<tr><td><%= h.date %></td><td><%= h.amount %></td>
+<td><span class="status status-<%= h.status %>"><%= h.status==='paid'?'已付款':'未付款' %></span></td><td><%= h.notes||'-' %></td>
+<td><% if(h.status==='unpaid'){%><form method="POST" action="/handlers/<%= h.id %>/status" style="display:inline"><input type="hidden" name="status" value="paid"><button type="submit" class="btn btn-sm">标记已付</button></form><%}%>
+<form method="POST" action="/handlers/<%= h.id %>/delete" style="display:inline" onsubmit="return confirm('删除？')"><button type="submit" class="btn btn-sm btn-danger">删除</button></form></td></tr>
+<%})%></tbody></table>
+<form method="POST" action="/orders/<%= order.id %>/handlers/new" class="form-inline">
+  <input type="date" name="date" required><input name="amount" type="number" step="0.01" placeholder="金额" required>
+  <select name="status"><option value="unpaid">未付款</option><option value="paid">已付款</option></select>
+  <input name="notes" placeholder="备注"><button type="submit" class="btn btn-primary btn-sm">添加</button>
+</form>
+
+<% if(order.status==='active'){%>
+<h2>结单操作</h2>
+<div class="card"><form method="POST" action="/orders/<%= order.id %>/complete" onsubmit="return confirm('确认结单？')" class="form-inline">
+  <label>收款总额: <strong><%= receivedTotal %></strong> 元</label>
+  <label>付打手总额: <strong><%= handlerTotal %></strong> 元</label>
+  <label>纯利润: <strong><%= (receivedTotal-handlerTotal).toFixed(2) %></strong> 元</label>
+  <label>提前结单? 还欠: <input name="early_remaining_harfbux" type="number" step="0.01" value="0" placeholder="0=正常结单"></label>
+  <button type="submit" class="btn btn-warn">确认结单</button>
+</form><p style="color:#888;font-size:0.85rem">输入0或空=正常结单，大于0=提前结单</p></div>
+<% } else if(user.role==='admin'){%>
+<form method="POST" action="/orders/<%= order.id %>/reactivate" onsubmit="return confirm('重新开启？')"><button type="submit" class="btn btn-warn">重新开启订单</button></form>
+<%}%>

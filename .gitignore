@@ -1,0 +1,11 @@
+node_modules/
+data/
+.env
+backups/
+*.log
+
+# Node.js Windows 运行时（node.exe 约 80MB），不属于源码，不入库
+nodejs/
+
+# 改动前的临时备份文件
+*.bak

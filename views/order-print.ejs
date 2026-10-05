@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>派单记录 #<%= order.id %></title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei","SimSun",sans-serif;color:#222;padding:20px;background:#fff}
+.no-print{display:block;text-align:center;margin-bottom:15px}
+.no-print a,.no-print button{display:inline-block;padding:8px 20px;margin:0 5px;border-radius:4px;font-size:14px;cursor:pointer;text-decoration:none;border:1px solid #ccc;background:#f5f5f5;color:#333}
+.no-print button{background:#1a1a2e;color:#fff;border-color:#1a1a2e}
+.print-area{max-width:210mm;margin:0 auto;padding:0}
+h1{text-align:center;font-size:22px;margin-bottom:4px;letter-spacing:4px}
+.subtitle{text-align:center;font-size:13px;color:#666;margin-bottom:16px;border-bottom:2px solid #222;padding-bottom:8px}
+.info-table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:14px}
+.info-table td{padding:4px 8px;border:1px solid #999;vertical-align:top}
+.info-table .label{background:#f0f0f0;font-weight:600;width:100px;white-space:nowrap}
+.info-table .label2{background:#f0f0f0;font-weight:600;width:80px}
+table.handwrite{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:13px}
+table.handwrite th{border:1px solid #999;padding:5px 4px;text-align:center;background:#f0f0f0;font-weight:600}
+table.handwrite td{border:1px solid #999;padding:0;height:22px}
+.notes-box{border:1px solid #999;padding:8px;min-height:50px;font-size:13px;margin-top:8px}
+.sig-area{margin-top:24px;display:flex;justify-content:space-between;font-size:14px}
+.sig-area div{text-align:center}
+.sig-line{width:180px;border-bottom:1px solid #222;margin-top:28px}
+.foot-note{text-align:center;font-size:11px;color:#999;margin-top:10px}
+@media print{
+  @page{size:A4;margin:15mm 12mm}
+  body{padding:0}
+  .no-print{display:none!important}
+  .print-area{max-width:100%}
+  .info-table td,table.handwrite th,table.handwrite td{border-color:#333}
+}
+</style>
+</head>
+<body>
+<div class="no-print">
+  <a href="/orders/<%= order.id %>">← 返回订单</a>
+  <button onclick="window.print()">🖨️ 打印</button>
+</div>
+
+<div class="print-area">
+  <h1>派 单 记 录</h1>
+  <div class="subtitle">三角洲跑刀 · 序号 <%= order.sequence %> · 订单号 <%= order.order_number||'-' %></div>
+
+  <table class="info-table">
+    <tr><td class="label">客户微信</td><td><%= order.wechat_name %></td><td class="label">微信群</td><td><%= order.order_wechat_name||'-' %></td></tr>
+    <tr><td class="label">登陆方式</td><td><%= order.login_method||'-' %></td><td class="label">游戏ID</td><td><%= order.game_id||'-' %></td></tr>
+    <tr><td class="label">所属俱乐部</td><td><%= order.club_name||'-' %></td><td class="label">分配手机</td><td><%= order.phone_number ? order.phone_number+'号' : '-' %></td></tr>
+    <tr><td class="label">客户地区</td><td><%= order.region||'-' %></td><td class="label">实际加速地</td><td><%= order.acceleration_location||'-' %></td></tr>
+  </table>
+
+  <table class="info-table">
+    <tr><td class="label2">派单时间</td><td><%= new Date().toLocaleString('zh-CN',{hour12:false}) %></td><td class="label2">需求总数</td><td><%= order.total_harfbux %> M</td></tr>
+    <tr><td class="label2">初始现金</td><td><%= order.initial_cash||'-' %></td><td class="label2">初始总资产</td><td><%= order.initial_assets||'-' %></td></tr>
+  </table>
+
+  <div style="font-size:14px;font-weight:600;margin-bottom:6px">每日交易记录（系统同步 + 手写补充）</div>
+  <table class="handwrite">
+    <thead><tr><th style="width:22%">Date</th><th style="width:19%">Start</th><th style="width:19%">End</th><th style="width:20%">Total</th><th style="width:20%">Diff</th></tr></thead>
+    <tbody>
+      <% var txRows = (typeof transactions !== 'undefined' && transactions) ? transactions : []; %>
+      <% for(var i=0;i<txRows.length;i++){ var t=txRows[i]; %>
+      <tr>
+        <td><%= t.date %></td>
+        <td><%= t.start_amount %></td>
+        <td><%= (t.end_amount==null)?'—':t.end_amount %></td>
+        <td><%= (t.change_amount==null||t.change_amount==='')?'—':t.change_amount %></td>
+        <td><%= (t.balance_difference==null||t.balance_difference==='')?'—':t.balance_difference %></td>
+      </tr>
+      <% } %>
+      <% var emptyRows = Math.max(0, 15 - txRows.length); %>
+      <% for(var j=0;j<emptyRows;j++){ %><tr><td></td><td></td><td></td><td></td><td></td></tr><% } %>
+    </tbody>
+  </table>
+
+  <div style="font-size:13px;font-weight:600;margin-bottom:4px">订单备注：</div>
+  <div class="notes-box"><%= order.notes||'（无）' %></div>
+
+  <div class="sig-area">
+    <div>派单人<br><div class="sig-line"></div></div>
+    <div>接单人签收<br><div class="sig-line"></div></div>
+    <div>完成日期<br><div class="sig-line"></div></div>
+  </div>
+  <div class="foot-note">打印时间：<%= new Date().toLocaleString('zh-CN',{hour12:false}) %></div>
+</div>
+</body>
+</html>

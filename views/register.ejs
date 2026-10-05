@@ -1,0 +1,9 @@
+﻿<form class="auth-form" method="POST" action="/register">
+  <h1>注册账号</h1>
+  <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+  <input name="username" placeholder="账号" required>
+  <input type="password" name="password" placeholder="密码" required>
+  <input name="nickname" placeholder="昵称（选填）">
+  <button type="submit">注册</button>
+  <p class="auth-link">已有账号？<a href="/login">登录</a></p>
+</form>

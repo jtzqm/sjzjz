@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        body { background-color: #f4f7f6; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 1rem; box-sizing: border-box; font-family: sans-serif; }
+        .search-container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 400px; box-sizing: border-box; }
+        h1 { text-align: center; color: #333; margin-bottom: .35rem; font-size: 1.5rem; }
+        .sub { text-align: center; color: #999; font-size: .82rem; margin-bottom: 1.4rem; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: .5rem; color: #666; }
+        input { width: 100%; padding: .8rem; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; text-transform: uppercase; }
+        button { width: 100%; padding: .8rem; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: background 0.3s; }
+        button:hover { background-color: #0056b3; }
+        .btn-ghost { background: #fff; color: #007bff; border: 1px solid #007bff; margin-top: .75rem; }
+        .btn-ghost:hover { background: #eef5ff; }
+        .error { color: #dc3545; background: #f8d7da; padding: .8rem; border-radius: 6px; margin-bottom: 1rem; font-size: .9rem; }
+        .divider { display: flex; align-items: center; gap: .6rem; color: #ccc; font-size: .78rem; margin: 1.3rem 0 .4rem; }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #eee; }
+        #qrPanel { display: none; margin-top: 1rem; text-align: center; border: 1px dashed #ddd; border-radius: 10px; padding: 1rem; background: #fafbfc; }
+        #qrPanel img { width: 200px; height: 200px; border-radius: 8px; background: #fff; }
+        #qrLink { color: #666; font-size: .72rem; word-break: break-all; display: block; margin: .6rem 0; }
+        .qr-tip { color: #999; font-size: .74rem; margin-top: .3rem; }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <h1><%= title %></h1>
+        <div class="sub">三角洲跑刀 · 订单进度自助查询</div>
+        <% if (locals.error) { %>
+            <div class="error"><%= error %></div>
+        <% } %>
+        <form action="/public/track" method="POST">
+            <div class="form-group">
+                <label for="order_number">订单编号</label>
+                <input type="text" id="order_number" name="order_number" placeholder="请输入订单编号" required>
+            </div>
+            <div class="form-group">
+                <label for="query_token">查询验证码</label>
+                <input type="text" id="query_token" name="query_token" placeholder="请输入验证码" required>
+            </div>
+            <button type="submit">立即查询</button>
+        </form>
+
+        <div class="divider">或</div>
+        <button type="button" class="btn-ghost" onclick="genQR()">📱 生成派单二维码（发给客户）</button>
+        <div id="qrPanel">
+            <img id="qrImg" alt="查询二维码">
+            <span id="qrLink"></span>
+            <button type="button" class="btn-ghost" style="margin-top:0" onclick="copyLink()">复制链接</button>
+            <div class="qr-tip">客户扫码即可直接查看订单进度并打印派单</div>
+        </div>
+    </div>
+
+    <script>
+    function genQR() {
+        var num = document.getElementById('order_number').value.trim();
+        var tok = document.getElementById('query_token').value.trim().toUpperCase();
+        if (!num || !tok) { alert('请先填写订单编号和验证码'); return; }
+        var panel = document.getElementById('qrPanel');
+        document.getElementById('qrImg').src = '/public/qrcode?order_number=' + encodeURIComponent(num) + '&query_token=' + encodeURIComponent(tok);
+        document.getElementById('qrLink').textContent = location.origin + '/public/track?order_number=' + num + '&query_token=' + tok;
+        panel.style.display = 'block';
+    }
+    function copyLink() {
+        navigator.clipboard.writeText(document.getElementById('qrLink').textContent).then(function () { alert('链接已复制'); });
+    }
+    </script>
+</body>
+</html>

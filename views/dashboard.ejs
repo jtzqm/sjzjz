@@ -1,0 +1,29 @@
+<div class="page-header"><h1>首页概览</h1></div>
+<div class="stats-grid">
+  <div class="stat-card"><div class="stat-num"><%= activeOrders.cnt %></div><div class="stat-label">进行中订单</div></div>
+  <div class="stat-card"><div class="stat-num"><%= totalCustomers.cnt %></div><div class="stat-label">客户总数</div></div>
+  <div class="stat-card"><div class="stat-num"><%= totalOrders.cnt %></div><div class="stat-label">订单总数</div></div>
+  <div class="stat-card"><div class="stat-num"><%= monthReceived %></div><div class="stat-label">本月收款(元)</div></div>
+  <div class="stat-card"><div class="stat-num"><%= monthHandler %></div><div class="stat-label">本月付打手(元)</div></div>
+  <div class="stat-card"><div class="stat-num"><%= monthProfit %></div><div class="stat-label">本月纯利润(元)</div></div>
+</div>
+
+<% if (monthlyStats.length>0) { %>
+<h2 style="margin-top:2rem">按月统计</h2>
+<table class="table">
+  <thead><tr><th>月份</th><th>结单数</th><th>收款(元)</th><th>付打手(元)</th><th>纯利润(元)</th></tr></thead>
+  <tbody>
+    <% monthlyStats.forEach(function(m) { %>
+    <tr>
+      <td><%= m.month %></td>
+      <td><%= m.count %></td>
+      <td><%= m.received.toFixed(2) %></td>
+      <td><%= m.handler.toFixed(2) %></td>
+      <td><%= (m.received-m.handler).toFixed(2) %></td>
+    </tr>
+    <% }) %>
+  </tbody>
+</table>
+<% } %>
+
+
