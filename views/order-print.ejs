@@ -36,7 +36,7 @@ table.handwrite td{border:1px solid #999;padding:0;height:22px}
 </head>
 <body>
 <div class="no-print">
-  <a href="/orders/<%= order.id %>">← 返回订单</a>
+  <% if (locals.user) { %><a href="/orders/<%= order.id %>">← 返回订单</a><% } %>
   <button onclick="window.print()">🖨️ 打印</button>
 </div>
 

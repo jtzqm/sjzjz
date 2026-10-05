@@ -52,7 +52,8 @@
       var num = '<%= order.order_number %>';
       var tok = '<%= order.query_token %>';
       document.getElementById('qrImg').src = '/public/qrcode?order_number=' + encodeURIComponent(num) + '&query_token=' + encodeURIComponent(tok);
-      document.getElementById('qrLink').textContent = location.origin + '/public/track?order_number=' + num + '&query_token=' + tok;
+      var base = '<%- publicBase %>' || location.origin;
+      document.getElementById('qrLink').textContent = base + '/public/track?order_number=' + num + '&query_token=' + tok;
       panel.style.display = 'block';
     }
     function copyLink() {

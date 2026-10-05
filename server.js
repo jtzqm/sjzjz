@@ -99,6 +99,37 @@ app.use((req, res, next) => {
 });
 
 app.use(express.static(PUBLIC_DIR));
+
+// ---------------------------------------------------------------------------
+// 极简 .env 加载：不引入 dotenv 依赖，Windows 双击启动与 Linux systemd 行为一致。
+// 已存在的环境变量（如 systemd 的 EnvironmentFile 注入的）优先，不被 .env 覆盖。
+// ---------------------------------------------------------------------------
+(function loadEnvFile() {
+  try {
+    const envPath = path.join(__dirname, '.env');
+    if (!fs.existsSync(envPath)) return;
+    fs.readFileSync(envPath, 'utf8').split(/\r?\n/).forEach((line) => {
+      const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+      if (!m || line.trim().startsWith('#')) return;
+      const key = m[1];
+      const val = m[2].trim().replace(/^['"]|['"]$/g, '');
+      if (process.env[key] === undefined) process.env[key] = val;
+    });
+  } catch (e) { /* .env 缺失或不可读时静默跳过，全部走默认值 */ }
+})();
+
+// 客户从公网访问时使用的地址，例如 https://track.yourdomain.com
+// 不设置则回退到「请求的 Host 推断」。注意：打手若在内网(192.168.x.x)生成二维码，
+// 回退会编出内网地址，国内客户扫码打不开 —— 所以公网部署务必设置本变量。
+const PUBLIC_BASE_URL = String(process.env.PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '');
+function publicBase(r) {
+  if (PUBLIC_BASE_URL) return PUBLIC_BASE_URL;
+  const proto = r.get('x-forwarded-proto') || r.protocol;
+  return proto + '://' + r.get('host');
+}
+// 供模板拼接客户查询链接使用（为空时前端回退到 location.origin）
+app.locals.publicBase = PUBLIC_BASE_URL;
+
 const SESSION_SECRET = process.env.SESSION_SECRET || 'delta-session-secret-2026-change-me';
 app.use(session({ secret: SESSION_SECRET, resave: false, saveUninitialized: false, cookie: { maxAge: 86400000, httpOnly: true, sameSite: 'lax' } }));
 app.set('view engine', 'ejs');
@@ -406,8 +437,9 @@ app.get('/public/qrcode', (r, s) => {
   const d = getDb();
   const o = d.prepare('SELECT id,order_number,query_token FROM orders WHERE order_number=? AND query_token=?').get(orderNumber, queryToken);
   if (!o) return s.status(403).send('验证码无效');
-  const proto = r.get('x-forwarded-proto') || r.protocol;
-  const base = proto + '://' + r.get('host');
+  // 优先用 PUBLIC_BASE_URL：打手在内网生成二维码时，Host 是 192.168.x.x，
+  // 客户扫码会得到打不开的内网地址。
+  const base = publicBase(r);
   const url = base + '/public/track?order_number=' + encodeURIComponent(o.order_number) + '&query_token=' + o.query_token;
   QRCode.toBuffer(url, { type: 'png', width: 320, margin: 1, errorCorrectionLevel: 'M' }, function(err, buf) {
     if (err) return s.status(500).send('二维码生成失败');

@@ -1,0 +1,27 @@
+# 锁定换行符，避免跨平台检出后脚本损坏。
+# 尤其重要：shell 脚本若被检出成 CRLF，Linux 上执行会报
+#   /bin/bash^M: bad interpreter: No such file or directory
+
+# 脚本与代码：一律 LF
+*.sh   text eol=lf
+*.js   text eol=lf
+*.mjs  text eol=lf
+*.ejs  text eol=lf
+*.json text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.md   text eol=lf
+.env.example text eol=lf
+
+# Windows 批处理/PowerShell：必须 CRLF，否则 cmd 解析错乱
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# 二进制资源：禁止任何转换（语言包一旦被当文本处理就会损坏）
+*.gz    binary
+*.wasm  binary
+*.png   binary
+*.jpg   binary
+*.ico   binary
+*.db    binary
